@@ -110,12 +110,12 @@ def homography(x, y, xp, yp):
 
 
 def inverseWarping(src, H, dstSize):
-    warped = np.zeros(dstSize, dtype=np.uint8)
+    dst = np.zeros(dstSize, dtype=np.uint8)
     for x in range(dstSize[0]):
         for y in range(dstSize[1]):
             temp = np.matmul(np.linalg.inv(H), [x, y, 1])
-            warped[y, x] = src[int(temp[1]/temp[-1]), int(temp[0]/temp[-1])]
-    return warped
+            dst[y, x] = src[int(temp[1]/temp[-1]), int(temp[0]/temp[-1])]
+    return dst
 
 
 def fwdWarping(src, H, dst):
@@ -124,6 +124,17 @@ def fwdWarping(src, H, dst):
             temp = np.matmul(H, [x, y, 1])
             dst[int(temp[1]/temp[-1]), int(temp[0]/temp[-1])] = src[y, x]
     return dst
+
+
+def getProjMat(k, K, H):
+    lam = 2 / (np.linalg.norm(K * H[:, 0]) + np.linalg.norm(K * H[:, 1]))
+    B = K * H
+    if np.linalg.det(B) < 0:
+        B = -B
+    R1 = lam * B[:, 0]
+    R2 = lam * B[:, 1]
+    RT = np.array([R1, R2, np.cross(R1, R2), lam * B[:, 2]])
+    return(np.matmul(k, RT.T))
 
 
 def getARTagID(img):

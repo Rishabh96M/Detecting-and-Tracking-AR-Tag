@@ -17,7 +17,7 @@ if __name__ == '__main__':
     img = utils.removeBackground(gray)
     edges = utils.edgeDetection(img)
     corners = utils.getCorners(edges)
-
+    print("AR tag is at:")
     print(corners)
     for point in corners:
         cv2.circle(frame, point, 8, [255, 0, 0], -1)
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     cv2.imshow('tag', tag)
 
     id, _ = utils.getARTagID(tag)
-    print(id)
+    print("\nID of AR tag is: ", id)
 
     cv2.waitKey(0)
     cap.release()

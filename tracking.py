@@ -10,8 +10,12 @@ import numpy as np
 import utils
 
 if __name__ == '__main__':
-    cap = cv2.VideoCapture('Resources/1tagvideo.mp4')
+    k = np.array([[1346.1, 0, 932.16],
+                  [0, 1355.93, 654.9],
+                  [0, 0, 1]])
+    K = np.linalg.inv(k)
 
+    cap = cv2.VideoCapture('Resources/1tagvideo.mp4')
     while cap.isOpened():
         ret, frame = cap.read()
 
@@ -21,14 +25,11 @@ if __name__ == '__main__':
             edges = utils.edgeDetection(img)
             corners = utils.getCorners(edges)
 
-            for point in corners:
-                cv2.circle(frame, point, 8, [255, 0, 0], -1)
-
             try:
-                H = utils.homography(corners[:, 0], corners[:, 1], [
+                h = utils.homography(corners[:, 0], corners[:, 1], [
                                      0, 80, 80, 0], [0, 0, 80, 80])
-
-                tag = utils.inverseWarping(gray, H, (80, 80))
+                H = np.linalg.inv(h)
+                tag = utils.inverseWarping(gray, h, (80, 80))
 
                 id, ori = utils.getARTagID(tag)
 
@@ -38,15 +39,29 @@ if __name__ == '__main__':
                     template = cv2.rotate(
                         template, cv2.ROTATE_90_CLOCKWISE)
 
-                dst = utils.fwdWarping(template, np.linalg.inv(H), frame)
-                cv2.imshow('dst', dst)
+                dst = utils.fwdWarping(template, H, frame)
+
+                P = utils.getProjMat(k, K, H)
+
+                cube_points = np.array([[0, 0, 0, 1], [0, 80, 0, 1],
+                                        [80, 80, 0, 1], [80, 0, 0, 1],
+                                        [0, 0, -80, 1], [0, 80, -80, 1],
+                                        [80, 80, -80, 1], [80, 0, -80, 1]])
+
+                for point in cube_points:
+                    temp = np.matmul(P, point)
+                    temp /= temp[-1]
+                    cv2.circle(frame, (int(temp[1]), int(
+                        temp[0])), 8, [0, 0, 255], -1)
+
+                cv2.imshow('tracking', frame)
             except (TypeError, IndexError):
                 continue
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-
         else:
             break
+
     cap.release()
     cv2.destroyAllWindows()
