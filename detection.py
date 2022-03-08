@@ -14,9 +14,11 @@ if __name__ == '__main__':
     ret, frame = cap.read()
 
     gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-    edges = utils.edgeDetection(gray)
+    img = utils.removeBackground(gray)
+    edges = utils.edgeDetection(img)
     corners = utils.getCorners(edges)
 
+    print(corners)
     for point in corners:
         cv2.circle(frame, point, 8, [255, 0, 0], -1)
     cv2.imshow('frame', frame)
@@ -27,7 +29,7 @@ if __name__ == '__main__':
     tag = utils.inverseWarping(gray, H, (80, 80))
     cv2.imshow('tag', tag)
 
-    id = utils.getARTagID(tag)
+    id, _ = utils.getARTagID(tag)
     print(id)
 
     cv2.waitKey(0)

@@ -11,13 +11,26 @@ import numpy as np
 from itertools import combinations
 
 
-def edgeDetection(gray):
-    blurred = cv2.GaussianBlur(gray, (7, 7), 0)
+def removeBackground(gray):
+    _, thresh = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY)
+    _, ithresh = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY_INV)
+    close = cv2.morphologyEx(
+        thresh, cv2.MORPH_CLOSE, np.ones((101, 101)))
+    _, mask = cv2.threshold(close, 127, 1, cv2.THRESH_BINARY)
+    open = cv2.morphologyEx(
+        ithresh * mask, cv2.MORPH_OPEN, np.ones((5, 5)))
+    close = cv2.morphologyEx(
+        open, cv2.MORPH_CLOSE, np.ones((71, 71)))
+    return close
+
+
+def edgeDetection(close):
+    blurred = cv2.GaussianBlur(close, (7, 7), 0)
 
     dft = cv2.dft(np.float32(blurred), flags=cv2.DFT_COMPLEX_OUTPUT)
     dft_shift = np.fft.fftshift(dft)
 
-    rows, cols = gray.shape
+    rows, cols = close.shape
     crow, ccol = int(rows / 2), int(cols / 2)
     mask = np.ones((rows, cols, 2), np.uint8)
     r = 100
@@ -34,28 +47,41 @@ def edgeDetection(gray):
 
 def find_square(pts_list, thresh=5):
     for pts in combinations(pts_list, 4):
+        pts = np.array(pts)
         d01 = dist(pts[0], pts[1])
         d02 = dist(pts[0], pts[2])
         d03 = dist(pts[0], pts[3])
         d21 = dist(pts[2], pts[1])
         d31 = dist(pts[1], pts[3])
         d32 = dist(pts[2], pts[3])
+        flag = False
 
         if(abs(d01 - d32) < thresh) and (abs(d31 - d02) < thresh):
-            return np.array([pts[0], pts[2], pts[3], pts[1]])
+            flag = True
+        elif(abs(d02 - d31) < thresh) and (abs(d03 - d21) < thresh):
+            flag = True
+        elif(abs(d01 - d32) < thresh) and (abs(d03 - d21) < thresh):
+            flag = True
 
-        if(abs(d02 - d31) < thresh) and (abs(d03 - d21) < thresh):
-            return np.array([pts[0], pts[3], pts[1], pts[2]])
-
-        if(abs(d01 - d32) < thresh) and (abs(d03 - d21) < thresh):
-            return np.array([pts[0], pts[3], pts[2], pts[1]])
+        if flag:
+            points = np.zeros((4, 2))
+            idx = pts[:, 0].argsort()
+            pts = pts[idx]
+            points[0] = pts[0]
+            points[2] = pts[-1]
+            pts = np.delete(pts, [0, 3], axis=0)
+            idx = pts[:, 1].argsort()
+            pts = pts[idx]
+            points[1] = pts[0]
+            points[3] = pts[-1]
+            return np.int0(points)
     return []
 
 
 def getCorners(edges):
     open = cv2.morphologyEx(edges, cv2.MORPH_OPEN, np.ones((3, 3)))
     points = np.int0(cv2.goodFeaturesToTrack(open, 8, 0.1, 70))
-    corners = find_square(points[:, 0])
+    corners = find_square(points[:, 0], thresh=20)
     return corners
 
 
@@ -92,6 +118,14 @@ def inverseWarping(src, H, dstSize):
     return warped
 
 
+def fwdWarping(src, H, dst):
+    for x in range(np.shape(src)[0]):
+        for y in range(np.shape(src)[1]):
+            temp = np.matmul(H, [x, y, 1])
+            dst[int(temp[1]/temp[-1]), int(temp[0]/temp[-1])] = src[y, x]
+    return dst
+
+
 def getARTagID(img):
     _, thresh = cv2.threshold(img, 127, 1, cv2.THRESH_BINARY)
     x = np.int8(np.linspace(0, np.shape(img)[0], 9))
@@ -101,20 +135,24 @@ def getARTagID(img):
     border_mask[y[2]:y[6], x[2]:x[6]] = 0
     border_mask = border_mask / np.sum(border_mask)
     if not np.sum(thresh * border_mask) < 0.1:
-        return -1
+        return -1, _
 
     k = np.ones((x[1], y[1])) / 100
 
     if np.sum(thresh[y[5]:y[6], x[5]:x[6]] * k) > 0.9:
         order = [1, 2, 4, 8]
+        ori = 0
     elif np.sum(thresh[y[5]:y[6], x[2]:x[3]] * k) > 0.9:
         order = [8, 1, 2, 4]
+        ori = 1
     elif np.sum(thresh[y[2]:y[3], x[2]:x[3]] * k) > 0.9:
         order = [4, 8, 1, 2]
+        ori = 2
     elif np.sum(thresh[y[2]:y[3], x[5]:x[6]] * k) > 0.9:
         order = [2, 4, 8, 1]
+        ori = 3
     else:
-        return -1
+        return -1, -1
 
     id = 0
     if np.sum(thresh[y[3]:y[4], x[3]:x[4]] * k) > 0.9:
@@ -125,4 +163,4 @@ def getARTagID(img):
         id += order[2]
     if np.sum(thresh[y[4]:y[5], x[3]:x[4]] * k) > 0.9:
         id += order[3]
-    return int(id)
+    return id, ori

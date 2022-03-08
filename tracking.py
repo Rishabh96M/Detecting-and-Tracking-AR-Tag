@@ -17,33 +17,36 @@ if __name__ == '__main__':
 
         if ret:
             gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-            _, thresh = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY)
-            close = cv2.morphologyEx(
-                thresh, cv2.MORPH_CLOSE, np.ones((101, 101)))
-            open = cv2.morphologyEx(
-                close, cv2.MORPH_OPEN, np.ones((11, 11)))
-            blurred = cv2.GaussianBlur(open, (9, 9), 0)
-            points = np.int0(cv2.goodFeaturesToTrack(blurred, 4, 0.1, 200))
+            img = utils.removeBackground(gray)
+            edges = utils.edgeDetection(img)
+            corners = utils.getCorners(edges)
 
-            corners = utils.find_square(points[:, 0], 50)
             for point in corners:
                 cv2.circle(frame, point, 8, [255, 0, 0], -1)
-            cv2.imshow('frame', frame)
 
-            # H = utils.homography(corners[:, 0], corners[:, 1], [
-            #                      0, 80, 80, 0], [0, 0, 80, 80])
-            #
-            # tag = utils.inverseWarping(gray, H, (80, 80))
-            # cv2.imshow('tag', tag)
-            #
-            # id = utils.getARTagID(tag)
-            # print(id)
+            try:
+                H = utils.homography(corners[:, 0], corners[:, 1], [
+                                     0, 80, 80, 0], [0, 0, 80, 80])
 
-            if cv2.waitKey(10) & 0xFF == ord('q'):
+                tag = utils.inverseWarping(gray, H, (80, 80))
+
+                id, ori = utils.getARTagID(tag)
+
+                template = cv2.imread('Resources/testudo.png')
+                template = cv2.resize(template, (80, 80))
+                for i in range(ori):
+                    template = cv2.rotate(
+                        template, cv2.ROTATE_90_CLOCKWISE)
+
+                dst = utils.fwdWarping(template, np.linalg.inv(H), frame)
+                cv2.imshow('dst', dst)
+            except (TypeError, IndexError):
+                continue
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
         else:
             break
-
     cap.release()
     cv2.destroyAllWindows()
