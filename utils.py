@@ -109,12 +109,16 @@ def homography(x, y, xp, yp):
     return VT[-1].reshape((3, 3)) / VT[-1, -1]
 
 
-def inverseWarping(src, H, dstSize):
-    dst = np.zeros(dstSize, dtype=np.uint8)
-    for x in range(dstSize[0]):
-        for y in range(dstSize[1]):
-            temp = np.matmul(np.linalg.inv(H), [x, y, 1])
-            dst[y, x] = src[int(temp[1]/temp[-1]), int(temp[0]/temp[-1])]
+def inverseWarping(src, H, dst):
+    dst_shape = np.shape(dst)
+    src_shape = np.shape(src)
+    total = dst_shape[0] * dst_shape[1]
+    indx = np.ones((total, 3))
+    indx[:, 0:2] = np.indices((dst_shape[0], dst_shape[1])).T.reshape(total, 2)
+    dst_indx = np.matmul(np.linalg.inv(H), indx.T)
+    dst_indx /= dst_indx[2]
+    dst[np.int0(indx[:, 1]), np.int0(indx[:, 0])
+        ] = src[np.int0(dst_indx.T[:, 1]), np.int0(dst_indx.T[:, 0])]
     return dst
 
 
@@ -122,15 +126,45 @@ def fwdWarping(src, H, dst):
     for x in range(np.shape(src)[0]):
         for y in range(np.shape(src)[1]):
             temp = np.matmul(H, [x, y, 1])
-            dst[int(temp[1]/temp[-1]), int(temp[0]/temp[-1])] = src[y, x]
+            dst[int(temp[1]/temp[-1]) + 1,
+                int(temp[0]/temp[-1]) + 1] = src[y, x]
+            dst[int(temp[1]/temp[-1]) + 0,
+                int(temp[0]/temp[-1]) + 1] = src[y, x]
+            dst[int(temp[1]/temp[-1]) - 1,
+                int(temp[0]/temp[-1]) + 1] = src[y, x]
+            dst[int(temp[1]/temp[-1]) + 1,
+                int(temp[0]/temp[-1]) + 0] = src[y, x]
+            dst[int(temp[1]/temp[-1]) + 0,
+                int(temp[0]/temp[-1]) + 0] = src[y, x]
+            dst[int(temp[1]/temp[-1]) - 1,
+                int(temp[0]/temp[-1]) + 0] = src[y, x]
+            dst[int(temp[1]/temp[-1]) + 1,
+                int(temp[0]/temp[-1]) - 1] = src[y, x]
+            dst[int(temp[1]/temp[-1]) + 0,
+                int(temp[0]/temp[-1]) - 1] = src[y, x]
+            dst[int(temp[1]/temp[-1]) - 1,
+                int(temp[0]/temp[-1]) - 1] = src[y, x]
     return dst
 
 
 def getProjMat(k, K, H):
-    lam = 2 / (np.linalg.norm(K * H[:, 0]) + np.linalg.norm(K * H[:, 1]))
-    B = K * H
+    B = np.matmul(K, H)
     if np.linalg.det(B) < 0:
-        B = -B
+        B *= -1
+    lam = 2 / ((np.linalg.norm(B[:, 0]) + np.linalg.norm(B[:, 1])))
+    R1 = lam * B[:, 0]
+    R2 = lam * B[:, 1]
+    RT = np.array([R1, R2, np.cross(R1, R2), lam * B[:, 2]])
+    return(np.matmul(k, RT.T))
+
+
+def getProjMat1(k, K, H):
+    lam = 2 / \
+        ((np.linalg.norm(np.matmul(K, H[:, 0]))
+         + np.linalg.norm(np.matmul(K, H[:, 1]))))
+    B = np.matmul(K, H)
+    if np.linalg.det(B) < 0:
+        B *= -1
     R1 = lam * B[:, 0]
     R2 = lam * B[:, 1]
     RT = np.array([R1, R2, np.cross(R1, R2), lam * B[:, 2]])

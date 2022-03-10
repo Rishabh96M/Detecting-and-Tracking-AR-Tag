@@ -14,11 +14,11 @@ if __name__ == '__main__':
                   [0, 1355.93, 654.9],
                   [0, 0, 1]])
     K = np.linalg.inv(k)
+    tag = np.zeros((80, 80), dtype=np.uint8)
 
     cap = cv2.VideoCapture('Resources/1tagvideo.mp4')
     while cap.isOpened():
         ret, frame = cap.read()
-
         if ret:
             gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
             img = utils.removeBackground(gray)
@@ -29,9 +29,11 @@ if __name__ == '__main__':
                 h = utils.homography(corners[:, 0], corners[:, 1], [
                                      0, 80, 80, 0], [0, 0, 80, 80])
                 H = np.linalg.inv(h)
-                tag = utils.inverseWarping(gray, h, (80, 80))
+                tag = utils.inverseWarping(gray, h, tag)
 
                 id, ori = utils.getARTagID(tag)
+                print(id)
+                cv2.imshow('tag', tag)
 
                 template = cv2.imread('Resources/testudo.png')
                 template = cv2.resize(template, (80, 80))
@@ -41,27 +43,28 @@ if __name__ == '__main__':
 
                 dst = utils.fwdWarping(template, H, frame)
 
-                P = utils.getProjMat(k, K, H)
+                P = utils.getProjMat1(k, K, H)
+                P = P/P[-1, -1]
 
                 cube_points = np.array([[0, 0, 0, 1], [0, 80, 0, 1],
                                         [80, 80, 0, 1], [80, 0, 0, 1],
                                         [0, 0, -80, 1], [0, 80, -80, 1],
                                         [80, 80, -80, 1], [80, 0, -80, 1]])
-
+                                        
+                new_points = np.matmul(P, cube_points.T)
                 for point in cube_points:
                     temp = np.matmul(P, point)
                     temp /= temp[-1]
-                    cv2.circle(frame, (int(temp[1]), int(
-                        temp[0])), 8, [0, 0, 255], -1)
+                    cv2.circle(frame, (int(temp[0]), int(
+                        temp[1])), 8, [0, 0, 255], -1)
+                    cv2.imshow('tracking', frame)
 
-                cv2.imshow('tracking', frame)
             except (TypeError, IndexError):
                 continue
 
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
         else:
             break
-
     cap.release()
     cv2.destroyAllWindows()

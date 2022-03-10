@@ -7,6 +7,7 @@
 
 import cv2
 import utils
+import numpy as np
 
 if __name__ == '__main__':
     cap = cv2.VideoCapture('Resources/1tagvideo.mp4')
@@ -22,11 +23,10 @@ if __name__ == '__main__':
     for point in corners:
         cv2.circle(frame, point, 8, [255, 0, 0], -1)
     cv2.imshow('frame', frame)
-
     H = utils.homography(corners[:, 0], corners[:, 1], [
                          0, 80, 80, 0], [0, 0, 80, 80])
 
-    tag = utils.inverseWarping(gray, H, (80, 80))
+    tag = utils.inverseWarping(gray, H, np.zeros((80, 80), dtype=np.uint8))
     cv2.imshow('tag', tag)
 
     id, _ = utils.getARTagID(tag)
