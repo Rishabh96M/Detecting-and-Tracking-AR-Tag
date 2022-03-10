@@ -50,7 +50,7 @@ if __name__ == '__main__':
                                         [80, 80, 0, 1], [80, 0, 0, 1],
                                         [0, 0, -80, 1], [0, 80, -80, 1],
                                         [80, 80, -80, 1], [80, 0, -80, 1]])
-                                        
+
                 new_points = np.matmul(P, cube_points.T)
                 for point in cube_points:
                     temp = np.matmul(P, point)
