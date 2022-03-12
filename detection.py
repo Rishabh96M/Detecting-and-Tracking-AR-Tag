@@ -11,18 +11,20 @@ import numpy as np
 
 if __name__ == '__main__':
     cap = cv2.VideoCapture('Resources/1tagvideo.mp4')
-
-    ret, frame = cap.read()
+    _, frame = cap.read()
 
     gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
     img = utils.removeBackground(gray)
     edges = utils.edgeDetection(img)
     corners = utils.getCorners(edges)
+
     print("AR tag is at:")
     print(corners)
+
     for point in corners:
         cv2.circle(frame, point, 8, [255, 0, 0], -1)
     cv2.imshow('frame', frame)
+
     H = utils.homography(corners[:, 0], corners[:, 1], [
                          0, 80, 80, 0], [0, 0, 80, 80])
 
