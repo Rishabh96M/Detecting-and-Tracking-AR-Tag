@@ -34,3 +34,6 @@ sudo pip install matplotlib
 sudo pip install opencv-python
 sudo pip install numpy
 ```
+
+The ***Resources*** folder contains the template to be imposed and the video of the AR tag.
+The ***Videos*** folder contains the videos of the code output for cube projection and template projection
