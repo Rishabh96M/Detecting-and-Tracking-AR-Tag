@@ -12,6 +12,19 @@ from itertools import combinations
 
 
 def removeBackground(gray):
+    """
+    Definition
+    ---
+    Method to remove the background in a given frame.
+
+    Parameters
+    ---
+    gray : grayscale frame
+
+    Returns
+    ---
+    close: binary frame after removing the background
+    """
     _, thresh = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY)
     _, ithresh = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY_INV)
     close = cv2.morphologyEx(
@@ -25,6 +38,19 @@ def removeBackground(gray):
 
 
 def edgeDetection(close):
+    """
+    Definition
+    ---
+    Method to detect the edges using fft
+
+    Parameters
+    ---
+    close: binary frame after removing the background
+
+    Returns
+    ---
+    edges: binary image of the edges
+    """
     blurred = cv2.GaussianBlur(close, (7, 7), 0)
 
     dft = cv2.dft(np.float32(blurred), flags=cv2.DFT_COMPLEX_OUTPUT)
@@ -46,6 +72,20 @@ def edgeDetection(close):
 
 
 def find_square(pts_list, thresh=5):
+    """
+    Definition
+    ---
+    Method to find the edge points that make a square in a given set of points
+
+    Parameters
+    ---
+    pts_list: list of new_points
+    thresh: Threshold (default as 5)
+
+    Returns
+    ---
+    points: binary image of the edges of square in cyclic order
+    """
     for pts in combinations(pts_list, 4):
         pts = np.array(pts)
         d01 = dist(pts[0], pts[1])
@@ -79,6 +119,19 @@ def find_square(pts_list, thresh=5):
 
 
 def getCorners(edges):
+    """
+    Definition
+    ---
+    Method to find all the corners in a given edge frame
+
+    Parameters
+    ---
+    edges: binary image of edges in a frame
+
+    Returns
+    ---
+    corners: list of corner points in a frame
+    """
     open = cv2.morphologyEx(edges, cv2.MORPH_OPEN, np.ones((3, 3)))
     points = np.int0(cv2.goodFeaturesToTrack(open, 8, 0.1, 70))
     corners = find_square(points[:, 0], thresh=20)
@@ -86,16 +139,38 @@ def getCorners(edges):
 
 
 def dist(point1, point2):
+    """
+    Definition
+    ---
+    Method to find the manhattan distance between 2 points
+
+    Parameters
+    ---
+    point1, point2: points to calcualte distance
+
+    Returns
+    ---
+    dist: distance between the two points
+    """
     return(abs((point1[0] - point2[0]) + (point1[1] - point2[1])))
 
 
-def checkIfTag(points):
-    grid_x = np.int8(np.linspace(points[0], points[1], 9))
-    grid_y = np.int8(np.linspace(points[1], points[2], 9))
-    return grid_x, grid_y
-
-
 def homography(x, y, xp, yp):
+    """
+    Definition
+    ---
+    Method to generate the homography matrix with given set of points and
+    projection points
+
+    Parameters
+    ---
+    x, y: points on the original image.
+    xp, yp: projected points.
+
+    Returns
+    ---
+    H: Homography matrix
+    """
     A = np.array([[-x[0], -y[0], -1, 0, 0, 0, x[0]*xp[0], y[0]*xp[0], xp[0]],
                   [0, 0, 0, -x[0], -y[0], -1, x[0]*yp[0], y[0]*yp[0], yp[0]],
                   [-x[1], -y[1], -1, 0, 0, 0, x[1]*xp[1], y[1]*xp[1], xp[1]],
@@ -110,6 +185,22 @@ def homography(x, y, xp, yp):
 
 
 def inverseWarping(src, H, dst):
+    """
+    Definition
+    ---
+    Method to inverse wrap the src into destination based on the homography
+    matrix
+
+    Parameters
+    ---
+    src: image to be warped
+    H: Homography matrix
+    dst: destination frame
+
+    Returns
+    ---
+    dst: output of frame with warped image
+    """
     dst_shape = np.shape(dst)
     total = dst_shape[0] * dst_shape[1]
     indx = np.ones((total, 3))
@@ -122,6 +213,22 @@ def inverseWarping(src, H, dst):
 
 
 def Warping(src, H, dst):
+    """
+    Definition
+    ---
+    Method to wrap the src into destination based on the homography (RGB)
+    matrix
+
+    Parameters
+    ---
+    src: image to be warped
+    H: Homography matrix
+    dst: destination frame
+
+    Returns
+    ---
+    dst: output of frame with warped image
+    """
     for x in range(np.shape(src)[0]):
         for y in range(np.shape(src)[1]):
             temp = np.matmul(H, [x, y, 1])
@@ -147,17 +254,21 @@ def Warping(src, H, dst):
 
 
 def getProjMat(k, K, H):
-    B = np.matmul(K, H)
-    if np.linalg.det(B) < 0:
-        B *= -1
-    lam = 2 / ((np.linalg.norm(B[:, 0]) + np.linalg.norm(B[:, 1])))
-    R1 = lam * B[:, 0]
-    R2 = lam * B[:, 1]
-    RT = np.array([R1, R2, np.cross(R1, R2), lam * B[:, 2]])
-    return(np.matmul(k, RT.T))
+    """
+    Definition
+    ---
+    Method to generate the 3D projection matrix
 
+    Parameters
+    ---
+    k: camera intrisic parameter matrix
+    K: inverse of camera intrisic parameter matrix
+    H: Homography matrix
 
-def getProjMat1(k, K, H):
+    Returns
+    ---
+    P: Projection matrix
+    """
     lam = 2 / \
         ((np.linalg.norm(np.matmul(K, H[:, 0]))
          + np.linalg.norm(np.matmul(K, H[:, 1]))))
@@ -171,6 +282,20 @@ def getProjMat1(k, K, H):
 
 
 def getARTagID(img):
+    """
+    Definition
+    ---
+    Method to check if AR tag is valid and generate the ID
+
+    Parameters
+    ---
+    img: image of the AR tag
+
+    Returns
+    ---
+    id: ID of the AR Tag (-1 if not a valid AR tag)
+    ori: orientation of the AR Tag (-1 if not a valid AR tag)
+    """
     _, thresh = cv2.threshold(img, 127, 1, cv2.THRESH_BINARY)
     x = np.int8(np.linspace(0, np.shape(img)[0], 9))
     y = np.int8(np.linspace(0, np.shape(img)[1], 9))

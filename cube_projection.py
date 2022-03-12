@@ -36,7 +36,7 @@ if __name__ == '__main__':
                 _, ori = utils.getARTagID(tag)
                 cv2.imshow('tag', tag)
 
-                P = utils.getProjMat1(k, K, H)
+                P = utils.getProjMat(k, K, H)
                 P = P/P[-1, -1]
 
                 cube_points = np.array([[0, 0, 0, 1], [0, 80, 0, 1],
@@ -65,7 +65,7 @@ if __name__ == '__main__':
             except (TypeError, IndexError):
                 continue
 
-            if cv2.waitKey(10) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         else:
             break

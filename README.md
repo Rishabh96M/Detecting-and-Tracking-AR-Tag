@@ -5,20 +5,27 @@ Verified on python 3.8.10 and packages used are Random, NumPy, Matplotlib and cv
 # Detecting-and-Tracking-AR-Tag
 This project will focus on detecting a custom AR Tag (a form offiducial marker), that is used for obtaining a point of reference in the real world, such as in augmented reality applications. There are two aspects to using an AR Tag, namely detection and tracking, both of which will be implemented in this project. The detection stage will involve finding the AR Tag from a given image sequence while the tracking stage will involve keeping the tag in “view” throughout the sequence and performing image processing operations based on the tag’s orientation and position (a.k.a. the pose).
 
-## Steps to run
-To clone the file:
+## Steps to run the program
+To clone the files:
 ```
 git clone https://github.com/rishabh96m/Detecting-and-Tracking-AR-Tag.git
+```
+To run the Detection code:
+```
 cd Detecting-and-Tracking-AR-Tag
-```
-To run the Detection:
-```
 python3 detection.py
 ```
 
-To run the Tracking:
+To run the template projection code:
 ```
-python3 tracking.py
+cd Detecting-and-Tracking-AR-Tag
+python3 template_projection.py
+```
+
+To run the cube projection code:
+```
+cd Detecting-and-Tracking-AR-Tag
+python3 cube_projection.py
 ```
 
 ## To install the dependencies
