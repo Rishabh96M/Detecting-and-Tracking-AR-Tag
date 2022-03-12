@@ -25,7 +25,7 @@ if __name__ == '__main__':
             img = utils.removeBackground(gray)
             edges = utils.edgeDetection(img)
             corners = utils.getCorners(edges)
-            cv2.imshow('input', frame)
+            cv2.imshow('input', cv2.resize(frame, (960, 540)))
 
             try:
                 h = utils.homography(corners[:, 0], corners[:, 1], [
@@ -61,7 +61,7 @@ if __name__ == '__main__':
                 cv2.line(frame, new_points[3, 0:2],
                          new_points[7, 0:2], [255, 0, 0], 4)
 
-                cv2.imshow('tracking', frame)
+                cv2.imshow('tracking', cv2.resize(frame, (960, 540)))
             except (TypeError, IndexError):
                 continue
 

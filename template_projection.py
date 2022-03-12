@@ -17,11 +17,12 @@ if __name__ == '__main__':
     while cap.isOpened():
         ret, frame = cap.read()
         if ret:
-            gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+            rframe = cv2.resize(frame, (960, 540))
+            gray = cv2.cvtColor(rframe, cv2.COLOR_RGB2GRAY)
             img = utils.removeBackground(gray)
             edges = utils.edgeDetection(img)
             corners = utils.getCorners(edges)
-            cv2.imshow('input', frame)
+            cv2.imshow('input', rframe)
 
             try:
                 h = utils.homography(corners[:, 0], corners[:, 1], [
@@ -38,7 +39,7 @@ if __name__ == '__main__':
                     template = cv2.rotate(
                         template, cv2.ROTATE_90_CLOCKWISE)
 
-                dst = utils.Warping(template, H, frame)
+                dst = utils.Warping(template, H, rframe)
                 cv2.imshow('output', dst)
 
             except (TypeError, IndexError):
