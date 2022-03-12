@@ -111,7 +111,6 @@ def homography(x, y, xp, yp):
 
 def inverseWarping(src, H, dst):
     dst_shape = np.shape(dst)
-    src_shape = np.shape(src)
     total = dst_shape[0] * dst_shape[1]
     indx = np.ones((total, 3))
     indx[:, 0:2] = np.indices((dst_shape[0], dst_shape[1])).T.reshape(total, 2)
@@ -122,7 +121,7 @@ def inverseWarping(src, H, dst):
     return dst
 
 
-def fwdWarping(src, H, dst):
+def Warping(src, H, dst):
     for x in range(np.shape(src)[0]):
         for y in range(np.shape(src)[1]):
             temp = np.matmul(H, [x, y, 1])

@@ -1,19 +1,16 @@
-# AR Tag Tracking
+# Template projrction on AR Tag
 # Copyright (c) 2022 Rishabh Mukund
 # MIT License
 #
-# Description: Tracking the AR Tag in a video, check for orientation and
-# calculate thr ID of the tag using fft and homography.
+# Description: Tracking the AR Tag in a video, and projecting a given template
+# on it. Fft and homography are used to detect the tag and warping is used to
+# project the template on the AR tag in the video.
 
 import cv2
 import numpy as np
 import utils
 
 if __name__ == '__main__':
-    k = np.array([[1346.1, 0, 932.16],
-                  [0, 1355.93, 654.9],
-                  [0, 0, 1]])
-    K = np.linalg.inv(k)
     tag = np.zeros((80, 80), dtype=np.uint8)
 
     cap = cv2.VideoCapture('Resources/1tagvideo.mp4')
@@ -24,6 +21,7 @@ if __name__ == '__main__':
             img = utils.removeBackground(gray)
             edges = utils.edgeDetection(img)
             corners = utils.getCorners(edges)
+            cv2.imshow('input', frame)
 
             try:
                 h = utils.homography(corners[:, 0], corners[:, 1], [
@@ -31,8 +29,7 @@ if __name__ == '__main__':
                 H = np.linalg.inv(h)
                 tag = utils.inverseWarping(gray, h, tag)
 
-                id, ori = utils.getARTagID(tag)
-                print(id)
+                _, ori = utils.getARTagID(tag)
                 cv2.imshow('tag', tag)
 
                 template = cv2.imread('Resources/testudo.png')
@@ -41,28 +38,13 @@ if __name__ == '__main__':
                     template = cv2.rotate(
                         template, cv2.ROTATE_90_CLOCKWISE)
 
-                dst = utils.fwdWarping(template, H, frame)
-
-                P = utils.getProjMat1(k, K, H)
-                P = P/P[-1, -1]
-
-                cube_points = np.array([[0, 0, 0, 1], [0, 80, 0, 1],
-                                        [80, 80, 0, 1], [80, 0, 0, 1],
-                                        [0, 0, -80, 1], [0, 80, -80, 1],
-                                        [80, 80, -80, 1], [80, 0, -80, 1]])
-
-                new_points = np.matmul(P, cube_points.T)
-                for point in cube_points:
-                    temp = np.matmul(P, point)
-                    temp /= temp[-1]
-                    cv2.circle(frame, (int(temp[0]), int(
-                        temp[1])), 8, [0, 0, 255], -1)
-                    cv2.imshow('tracking', frame)
+                dst = utils.Warping(template, H, frame)
+                cv2.imshow('output', dst)
 
             except (TypeError, IndexError):
                 continue
 
-            if cv2.waitKey(10) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         else:
             break
